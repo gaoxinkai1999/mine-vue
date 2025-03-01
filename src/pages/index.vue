@@ -1,100 +1,191 @@
 <template>
-  <div class="main-container">
-    <!-- 页面内容 -->
-    <div class="page-content">
-      <MyMine v-if="activeIndex==0"/>
-      <NewOrder v-if="activeIndex==1"/>
-      <OrderList v-if="activeIndex==2"/>
-      <MyTools v-if="activeIndex==3"/>
-    </div>
+  <div class="delivery-system">
+    <!-- 顶部区域 -->
+    <header class="header">
+      <div class="header-content">
+        <h1 class="title">门店配送系统</h1>
+        <div class="version-info">
+          <span class="version">v{{ version }}</span>
+          <span class="changelog" v-if="changelog">{{ changelog }}</span>
+        </div>
+      </div>
+    </header>
 
-    <!-- 底部导航 -->
-    <van-tabbar v-model="activeIndex" class="custom-tabbar">
-      <van-tabbar-item icon="home-o" >主页</van-tabbar-item>
-      <van-tabbar-item icon="apps-o" >新建订单</van-tabbar-item>
-      <van-tabbar-item icon="apps-o" >全部订单</van-tabbar-item>
-      <van-tabbar-item icon="user-o" >我的</van-tabbar-item>
-    </van-tabbar>
+    <!-- 主功能区域 -->
+    <main class="main-content">
+      <div class="menu-grid">
+        <router-link
+            v-for="(item, index) in menuItems"
+            :key="index"
+            :to="item.to"
+            class="menu-card"
+        >
+          <div class="menu-card-content">
+            <van-icon :name="item.icon" class="menu-icon" />
+            <span class="menu-text">{{ item.text }}</span>
+          </div>
+        </router-link>
+      </div>
+    </main>
+
+    <!-- 底部备案信息 -->
+    <footer class="footer">
+      <a
+          class="beian-link"
+          href="https://beian.miit.gov.cn/"
+          rel="noopener noreferrer"
+          target="_blank"
+      >
+        晋ICP备2023014165号
+      </a>
+    </footer>
   </div>
 </template>
 
 <script>
-
-
-import MyIndex from "@/pages/MyIndex.vue";
-import MyMine from "@/pages/MyMine.vue";
-import MyTools from "@/pages/MyTools.vue";
-import {useMyStore} from '@/stores/defineStore.js'
-import  NewOrder from  "@/pages/order/xxx/new.vue"
-import  OrderList from  "@/pages/order/list.vue"
-import {storeToRefs} from 'pinia'
+import { ref, onMounted } from 'vue';
+import {APP_VERSION} from "@/config/version.js";
 
 export default {
-  name: 'HelloWorld',
-  components: {MyTools, MyMine, MyIndex, NewOrder, OrderList},
+  name: 'HomePage',
   setup() {
-    const {activeIndex} = storeToRefs(useMyStore())
-    return {
-      activeIndex,
-    }
-  },
-  data() {
-    return {}
-  },
-  mounted() {
 
-  },
-  methods: {},
-}
+    const {version,changelog} = APP_VERSION;
+
+    
+    // 功能菜单项
+    const menuItems = ref([
+      { text: '采购管理', icon: 'cart-o', to: '/purchase' },
+      { text: '库存管理', icon: 'label-o', to: '/product/inventory' },
+      { text: '订单管理', icon: 'orders-o', to: '/order/list' },
+      { text: '新建商家', icon: 'user-o', to: '/shop/create' }
+    ]);
+    
+    onMounted(() => {
+      // 可以在这里获取版本信息和更新日志
+    });
+    
+    return {
+      version,
+      changelog,
+      menuItems
+    };
+  }
+};
 </script>
 
 <style scoped>
-.main-container {
-  height: 100vh;
+.delivery-system {
+  min-height: 100vh;
+  height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
+  background-color: #f7f8fa;
   position: relative;
-  overflow: hidden;
-  background: #f7f8fa;
-}
-
-.page-content {
-  flex: 1;
   overflow-y: auto;
   padding-bottom: var(--van-tabbar-height);
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .delivery-system {
+    padding-bottom: calc(var(--van-tabbar-height) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.header {
+  background: linear-gradient(135deg, #1989fa, #3b9cff);
+  color: white;
+  padding: 24px 16px;
+  text-align: center;
+  width: 100%;
   box-sizing: border-box;
-  position: relative;
-  -webkit-overflow-scrolling: touch;
 }
 
-.custom-tabbar {
-  --van-tabbar-item-active-color: #1989fa;
-  --van-tabbar-item-font-size: 12px;
-  --van-tabbar-item-icon-size: 22px;
-  --van-tabbar-height: 50px;
-  height: var(--van-tabbar-height);
-  flex-shrink: 0;
-  box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.05);
-  border-top: none;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-}
-.custom-tabbar .van-tabbar-item {
-  padding: 8px 0;
+.header-content {
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.custom-tabbar .van-tabbar-item__icon {
-  margin-bottom: 4px;
-  transition: transform 0.2s;
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
 }
 
-.custom-tabbar .van-tabbar-item--active .van-tabbar-item__icon {
-  transform: scale(1.1);
+.version-info {
+  margin-top: 8px;
+  font-size: 14px;
+  opacity: 0.9;
 }
+
+.version {
+  margin-right: 8px;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px 16px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.menu-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(100, 100, 100, 0.08);
+  overflow: hidden;
+  text-decoration: none;
+  color: #333;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.menu-card:active {
+  transform: scale(0.98);
+}
+
+.menu-card-content {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.menu-icon {
+  font-size: 32px;
+  color: #1989fa;
+  margin-bottom: 12px;
+}
+
+.menu-text {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.footer {
+  padding: 16px;
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+  margin-top: auto;
+  margin-bottom: 10px;
+}
+
+.beian-link {
+  color: #999;
+  text-decoration: none;
+}
+
+/* 自适应底部tabbar的存在，不再需要具体高度计算，由App.vue全局类处理 */
 </style>

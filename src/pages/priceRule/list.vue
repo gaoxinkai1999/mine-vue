@@ -1,17 +1,19 @@
 <template>
   <div>
     <van-nav-bar
-        title="价格规则"
         right-text="新建规则"
+        title="价格规则"
         @click-right="goToAddPriceRule"
     />
-    <van-cell :title=item.name v-for="(item,index) in data" :key="index" is-link @click="goToInfo(item.id)"></van-cell>
+    <van-cell v-for="(item,index) in data" :key="index" :title=item.name is-link @click="goToInfo(item.id)"></van-cell>
 
   </div>
 
 </template>
 
 <script>
+import api from "@/api/index.js";
+
 export default {
   name: "PriceRule",
   data() {
@@ -23,10 +25,8 @@ export default {
     this.findAll()
   },
   methods: {
-    findAll() {
-      this.$http.post('/priceRule/findByIsDel',this.$qs.stringify({isDel:false})).then(res => {
-        this.data = res.data
-      })
+    async findAll() {
+      this.data = await api.pricerule.getPriceRules()
     },
 
     goToInfo(id) {

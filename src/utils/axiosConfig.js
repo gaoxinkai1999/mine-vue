@@ -9,24 +9,11 @@ const instance = axios.create({
     timeout: 5000, // 请求超时时间
 });
 
-// axios.defaults.baseURL = 'https://test.abocidee.com/api'
-// axios.defaults.baseURL = 'https://g.abocidee.com/api'
-// axios.defaults.baseURL = 'https://abocidee.com/api'
-// axios.defaults.baseURL = 'http://localhost:8085/api'
-// axios.defaults.baseURL = 'http://43.129.186.135:8085'
-// axios.defaults.baseURL = 'http://192.144.135.26:8085'
-// axios.defaults.baseURL = 'https://test.abocidee.com/api'
 
 // 请求拦截器
 instance.interceptors.request.use(
     (config) => {
-        // 显示加载动画（如果需要）
-        // loadingInstance = Loading.service({
-        //     lock: true,
-        //     text: 'Loading...',
-        //     spinner: 'el-icon-loading',
-        //     background: 'rgba(0, 0, 0, 0.7)'
-        // });
+
 
         return config;
     },

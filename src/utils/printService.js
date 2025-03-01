@@ -189,7 +189,7 @@ export function formatReceipt(order, isPrinting) {
     receipt += padRight("商品名称", 12) + padRight("数量", 6) + padRight("单价", 8) + padRight("总价", 8) + '\n';
     orderDetails.forEach(detail => {
         const name = padRight(detail.product.name, 12);
-        const num = padRight(String(detail.num), 6);
+        const num = padRight(String(detail.quantity), 6);
         const price = padRight(String(detail.salePrice), 8);
         const total = padRight(String(detail.totalSalesAmount), 8);
         receipt += `${name}${num}${price}${total}\n`;

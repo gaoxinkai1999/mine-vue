@@ -36,7 +36,7 @@ export default {
     //跳转路由到添加商家
     goToAdd() {
       this.$router.push({
-        path: '/AddShop',
+        path: '/Create',
       })
     },
 

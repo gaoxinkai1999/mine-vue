@@ -1,97 +1,123 @@
 <template>
   <div class="app">
-    <!-- 品类列表 -->
-    <div class="category-list">
-      <draggable
-          v-model="categories"
-          item-key="id"
-          :animation="300"
-          @end="onCategoryDragEnd"
+    <!-- 顶部导航栏 -->
+    <div class="nav-bar">
+      <div class="nav-title">商品管理</div>
+      <van-button
+        icon="plus"
+        size="small"
+        type="primary"
+        plain
+        @click.stop="showCategoryPopup = true"
       >
-        <template #item="{ element }">
-          <van-button
-              :type="activeCategory === element.id ? 'primary' : 'default'"
-              size="small"
-              @click="setActiveCategory(element.id)"
-          >
-            {{ element.name }}
-          </van-button>
-        </template>
-      </draggable>
-      <van-button icon="plus" size="small" @click="showCategoryPopup = true">
         管理品类
       </van-button>
     </div>
 
-    <!-- 商品列表 -->
-    <div class="goods-list">
-      <div v-if="currentFoods.length === 0" class="empty">
-        暂无商品
+    <!-- 主体内容区 -->
+    <div class="main-container">
+      <!-- 品类列表 -->
+      <div class="sidebar-container">
+        <van-sidebar v-model="activeCategory">
+          <van-sidebar-item
+            v-for="category in categories"
+            :key="category.id"
+            :title="category.name"
+          />
+        </van-sidebar>
       </div>
-      <draggable
-          v-else
-          v-model="currentFoods"
-          item-key="id"
-          :animation="300"
-          :delay="0"
-          :touchStartThreshold="2"
-          :handle="'.drag-handle'"
-          @end="onDragEnd"
-      >
-        <template #item="{ element }">
-          <div class="goods-item">
-            <div class="drag-handle">
-              <van-icon name="bars"/>
-            </div>
-            <div class="goods-info">
-              <h4>{{ element.name }}</h4>
-              <p>品类：{{ element.category?.name || '未分类' }}</p>
-              <p>库存：{{ element.inventory }}</p>
-              <p>成本价：￥{{ element.costPrice }}</p>
-              <p>默认售价：￥{{ element.defaultSalePrice }}</p>
-            </div>
-            <div class="goods-actions">
-              <van-button size="normal" type="primary" @click="editItem(element)">编辑</van-button>
-              <van-button size="normal" type="danger" @click="deleteItem(element.id)">删除</van-button>
-            </div>
-          </div>
-        </template>
-      </draggable>
 
-      <van-button
-          block
-          style="margin-top: 16px"
-          type="primary"
-          @click="showAddPopup = true"
-      >
-        新增商品
-      </van-button>
+      <!-- 商品列表 -->
+      <div class="goods-list">
+        <div class="goods-list-content">
+          <div v-if="currentFoods.length === 0" class="empty">
+            <van-empty description="暂无商品" />
+            <van-button
+              style="margin-top: 16px"
+              type="primary"
+              size="small"
+              @click="showAddProductPopup()"
+            >
+              新增商品
+            </van-button>
+          </div>
+          <template v-else>
+            <draggable
+              v-model="currentFoods"
+              :animation="300"
+              :delay="50"
+              :force-fallback="true"
+              :touch-start-threshold="5"
+              :handle="'.drag-handle'"
+              item-key="id"
+              @end="onDragEnd"
+            >
+              <template #item="{ element }">
+                <div class="goods-item">
+                  <div class="drag-handle">
+                    <van-icon name="bars" />
+                  </div>
+                  <div class="goods-content">
+                    <div class="goods-header">
+                      <h4 class="goods-title">{{ element.name }}</h4>
+                    </div>
+                    <div class="goods-details">
+                      <div class="goods-detail-item">
+                        <van-icon name="warehouse-o" />
+                        <span>库存：{{ element.productStockDTO.totalInventory }}</span>
+                      </div>
+                      <div class="goods-detail-item">
+                        <van-icon name="balance-o" />
+                        <span>成本：￥{{ element.costPrice }}</span>
+                      </div>
+                      <div class="goods-detail-item">
+                        <van-icon name="gold-coin-o" />
+                        <span>售价：￥{{ element.defaultSalePrice }}</span>
+                      </div>
+                    </div>
+                    <div class="goods-actions">
+                      <van-button size="mini" type="primary" plain @click="editItem(element)">编辑</van-button>
+                      <van-button size="mini" type="danger" plain @click="deleteItem(element.id)">删除</van-button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </draggable>
+
+            <van-button
+              block
+              style="margin-top: 16px"
+              type="primary"
+              @click="showAddProductPopup()"
+            >
+              新增商品
+            </van-button>
+          </template>
+        </div>
+      </div>
     </div>
 
     <!-- 品类管理弹出层 -->
-    <van-popup v-model:show="showCategoryPopup" :style="{ height: '50%' }" position="bottom">
-      <div class="popup-content">
-        <van-field
-            v-model="newCategoryName"
-            label="品类名称"
-            placeholder="请输入品类名称"
-            required
-        />
+    <van-popup v-model:show="showCategoryPopup" :style="{ height: '70%' }" position="bottom">
+      <div class="popup-header">
+        <div class="popup-title">品类管理</div>
+      </div>
+      <div class="popup-content category-popup">
+        <van-field v-model="newCategoryName" label="品类名称" placeholder="请输入品类名称" required />
         <div class="popup-actions">
           <van-button block type="primary" @click="addCategory">新增品类</van-button>
-          <van-button block type="default" @click="showCategoryPopup = false">关闭</van-button>
         </div>
-        <div v-for="category in categories" :key="category.id" class="category-item">
-          <span>{{ category.name }}</span>
-          <van-button
-              v-if="category.name !== '全部'"
-              plain
-              size="small"
-              type="danger"
-              @click="deleteCategory(category.id)"
-          >
-            删除
-          </van-button>
+        <div class="category-list">
+          <div v-for="category in categories" :key="category.id" class="category-item">
+            <span>{{ category.name }}</span>
+            <van-button v-if="category.name !== '全部'" plain size="small" type="danger"
+              @click="deleteCategory(category.id)">
+              删除
+            </van-button>
+          </div>
+        </div>
+        <div class="popup-bottom-actions">
+          <van-button block type="default" @click="showCategoryPopup = false">关闭</van-button>
         </div>
       </div>
     </van-popup>
@@ -99,41 +125,21 @@
     <!-- 新增/编辑商品弹出层 -->
     <van-popup v-model:show="showAddPopup" :style="{ height: 'auto', padding: '16px' }" position="bottom">
       <div class="popup-content">
-        <van-field
-            v-model="newItem.name"
-            label="商品名称"
-            placeholder="请输入商品名称"
-            required
-        />
-        <van-field
-            v-model="newItem.defaultSalePrice"
-            label="默认售价"
-            placeholder="请输入售价"
-            required
-            type="number"
-        />
-        <van-field
-            v-model="newItem.inventory"
-            label="库存"
-            placeholder="请输入库存"
-            required
-            type="number"
-        />
-        <van-field
-            v-model="newItem.category.name"
-            clickable
-            label="品类"
-            placeholder="请选择品类"
-            readonly
-            @click="showPicker = true"
-        />
+        <van-field v-model="newItem.name" label="商品名称" placeholder="请输入商品名称" required />
+        <van-field v-model="newItem.defaultSalePrice" label="默认售价" placeholder="请输入售价" required type="number" />
+        <van-field v-model="newItem.costPrice" label="成本价" placeholder="请输入成本价" required type="number" />
+        <van-field name="radio" label="管理批次" required>
+          <template #input>
+            <van-radio-group v-model="newItem.isBatchManaged" direction="horizontal">
+              <van-radio :name="true">是</van-radio>
+              <van-radio :name="false">否</van-radio>
+            </van-radio-group>
+          </template>
+        </van-field>
+        <van-field v-model="newItem.category.name" clickable label="品类" placeholder="请选择品类" readonly required
+          @click="showPicker = true" />
         <van-popup v-model:show="showPicker" position="bottom">
-          <van-picker
-              :columns="categoryOptions"
-              show-toolbar
-              @cancel="showPicker = false"
-              @confirm="onPickerConfirm"
-          />
+          <van-picker :columns="categoryOptions" show-toolbar @cancel="showPicker = false" @confirm="onPickerConfirm" />
         </van-popup>
         <div class="popup-actions">
           <van-button block type="primary" @click="saveNewItem">保存</van-button>
@@ -150,7 +156,7 @@
 
 import draggable from 'vuedraggable'
 import api from "@/api";
-import {showFailToast, showSuccessToast} from "vant";
+import { showFailToast, showSuccessToast } from "vant";
 
 
 export default {
@@ -170,20 +176,21 @@ export default {
       showPicker: false,
       newItem: this.getEmptyNewItem(),
       isEdit: false,
-      loading: true
+      loading: true,
+      isAdmin: true,
+      touchStartTime: 0,
+      isDragging: false,
     };
   },
   computed: {
     currentFoods: {
       get() {
-        return this.goodsList.filter(food =>
-            food.category?.id === this.activeCategory
-        );
+        const categoryId = this.categories[this.activeCategory]?.id;
+        return this.goodsList.filter(food => food?.categoryId === categoryId);
       },
       set(value) {
-        const otherFoods = this.goodsList.filter(food =>
-           food.category?.id !== this.activeCategory
-        );
+        const categoryId = this.categories[this.activeCategory]?.id;
+        const otherFoods = this.goodsList.filter(food => food?.categoryId !== categoryId);
         this.goodsList = [...otherFoods, ...value];
       }
     },
@@ -192,10 +199,16 @@ export default {
     }
   },
   methods: {
+    showAddProductPopup() {
+      this.newItem = this.getEmptyNewItem();
+      this.isEdit = false;
+      this.showAddPopup = true;
+
+    },
     async getCategories() {
       try {
         this.categories = await api.category.getCategories();
-        this.activeCategory=this.categories[0].id
+        this.activeCategory = this.categories[0].id
       } catch (error) {
         console.error('获取品类失败:', error);
       }
@@ -214,17 +227,35 @@ export default {
         id: null,
         name: "",
         defaultSalePrice: 0,
-        inventory: 0,
-        category: { id: null, name: "" }
+        categoryId: null,
+        category: { id: null, name: "" },
+        isBatchManaged: false,
+        costPrice: 0,
       };
     },
     onPickerConfirm({ selectedOptions }) {
       const selected = this.categories.find(c => c.id === selectedOptions[0].value);
-      this.newItem.category = { ...selected };
+      this.newItem.category = selected;
+      this.newItem.categoryId = selected.id;
       this.showPicker = false;
     },
+    dragStart() {
+      this.isDragging = true;
+    },
+    handleTouchStart() {
+      this.touchStartTime = Date.now();
+    },
+    handleTouchEnd(categoryId) {
+      const touchDuration = Date.now() - this.touchStartTime;
+      if (touchDuration < 200 && !this.isDragging) {
+        this.setActiveCategory(categoryId);
+      }
+      this.isDragging = false;
+    },
     setActiveCategory(id) {
-      this.activeCategory = id;
+      if (this.activeCategory !== id) {
+        this.activeCategory = id;
+      }
     },
     async addCategory() {
       if (!this.newCategoryName.trim()) {
@@ -233,12 +264,11 @@ export default {
       }
 
       try {
-        const newCategory = await api.category.create({
+        await api.category.create({
           name: this.newCategoryName,
           sort: this.categories.length
         });
-        this.categories.push(newCategory);
-        this.newCategoryName = "";
+        await this.getCategories();
         showSuccessToast("品类已新增");
       } catch (error) {
         console.error('新增品类失败:', error);
@@ -252,7 +282,7 @@ export default {
           return;
         }
 
-        await api.category.delete(id);
+        await api.category.deleteCategory(id);
         this.categories = this.categories.filter(c => c.id !== id);
         showSuccessToast("品类已删除");
       } catch (error) {
@@ -261,7 +291,7 @@ export default {
     },
     async deleteItem(id) {
       try {
-        await api.product.delete(id);
+        await api.product.deleteProduct(id);
         this.goodsList = this.goodsList.filter(item => item.id !== id);
         showSuccessToast("商品已删除");
       } catch (error) {
@@ -270,8 +300,13 @@ export default {
     },
     editItem(item) {
       this.newItem = {
-        ...item,
-        category: { ...item.category }
+        id: item.id,
+        name: item.name,
+        defaultSalePrice: item.defaultSalePrice,
+        categoryId: item.categoryId,
+        category: { id: item.categoryId, name: this.categories.find(c => c.id === item.categoryId).name },
+        isBatchManaged: item.batchManaged,
+        costPrice: item.costPrice,
       };
       this.isEdit = true;
       this.showAddPopup = true;
@@ -287,11 +322,10 @@ export default {
       try {
         if (this.isEdit) {
           await api.product.batchUpdate([this.newItem]);
-          const index = this.goodsList.findIndex(i => i.id === this.newItem.id);
-          this.goodsList.splice(index, 1, this.newItem);
+          await this.init()
         } else {
-          const newProduct = await api.product.create(this.newItem);
-          this.goodsList.push(newProduct);
+          await api.product.createProduct(this.newItem);
+          await this.getProducts();
         }
 
         this.cancelEdit();
@@ -302,9 +336,10 @@ export default {
     },
     validateItem() {
       if (!this.newItem.name ||
-          !this.newItem.category?.id ||
-          this.newItem.defaultSalePrice <= 0 ||
-          this.newItem.inventory < 0) {
+        this.newItem.categoryId == null ||
+        this.newItem.defaultSalePrice <= 0 ||
+        this.newItem.costPrice <= 0
+      ) {
         showFailToast("请填写完整信息");
         return false;
       }
@@ -313,10 +348,10 @@ export default {
     async onDragEnd() {
       try {
         await api.product.batchUpdate(
-            this.currentFoods.map((item, index) => ({
-              id: item.id,
-              sort: index
-            }))
+          this.currentFoods.map((item, index) => ({
+            id: item.id,
+            sort: index
+          }))
         );
         showSuccessToast('排序已更新');
       } catch (error) {
@@ -326,140 +361,195 @@ export default {
     async onCategoryDragEnd() {
       try {
         await api.category.update(
-            this.categories.map((item, index) => ({
-              id: item.id,
-              sort: index
-            }))
+          this.categories.map((item, index) => ({
+            id: item.id,
+            sort: index
+          }))
         );
         showSuccessToast('排序已更新');
       } catch (error) {
         console.error('排序失败:', error);
       }
+    },
+    async init() {
+      await this.getCategories();
+      await this.getProducts();
     }
   },
   async mounted() {
-    await this.getCategories();
-    await this.getProducts();
+    await this.init()
   }
 };
 </script>
 
 <style scoped>
 .app {
-  padding: 16px;
-  max-width: 800px;
+  padding: 0;
+  max-width: 1200px;
   margin: 0 auto;
   background: #f7f8fa;
   min-height: 100vh;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
-/* 品类列表样式 */
-.category-list {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #fff;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.nav-bar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 10;
-  overflow-x: auto;
+  z-index: 99;
+  height: 56px;
+  padding: env(safe-area-inset-top) 16px 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #323233;
+}
+
+.main-container {
+  display: flex;
+  margin-top: calc(56px + env(safe-area-inset-top));
+  height: calc(100vh - 56px - env(safe-area-inset-top));
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-container {
+  position: sticky;
+  top: calc(56px + env(safe-area-inset-top));
+  width: 88px;
+  height: calc(100vh - 56px - env(safe-area-inset-top));
+  background: #fff;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
+  z-index: 2;
 }
 
-/* 直接给按钮添加右边距 */
-.category-list :deep(.van-button) {
-  margin-right: 12px; /* 添加按钮之间的间距 */
+.sidebar-container :deep(.van-sidebar) {
+  width: 100%;
+  background: transparent;
 }
 
-.category-list::-webkit-scrollbar {
+.sidebar-container :deep(.van-sidebar-item) {
+  padding: 12px 8px;
+  font-size: 14px;
+}
+
+.sidebar-container :deep(.van-sidebar-item--select) {
+  background: var(--van-primary-color);
+  color: #fff;
+}
+
+.sidebar-container :deep(.van-sidebar-item--select)::before {
   display: none;
 }
 
-/* 商品列表样式 */
 .goods-list {
-  background: #fff;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  margin-top: 60px; /* 为固定定位的category-list留出空间 */
+  flex: 1;
+  background: transparent;
+  padding: 16px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  position: relative;
+  height: 100%;
+}
+
+.goods-list-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: calc(100% - 32px);
 }
 
 .goods-item {
   position: relative;
   background: #fff;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
   margin-bottom: 12px;
   display: flex;
-  align-items: center;
   border: 1px solid #ebedf0;
-  user-select: none;
-}
-
-.goods-item:last-child {
-  margin-bottom: 0;
-}
-
-.goods-item:active {
-  background: #f7f8fa;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .drag-handle {
-  padding: 8px;
-  cursor: move;
+  width: 48px;
+  background: #f7f8fa;
   color: #999;
   display: flex;
   align-items: center;
+  justify-content: center;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
   transition: color 0.3s ease;
+  font-size: 20px;
+  cursor: move;
 }
 
-.drag-handle:active {
-  color: #666;
-}
-
-.goods-info {
+.goods-content {
   flex: 1;
-  margin: 0 16px;
-  min-width: 0; /* 防止文本溢出 */
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.goods-info h4 {
+.goods-header {
+  display: flex;
+  align-items: flex-start;
+}
+
+.goods-title {
   margin: 0;
   font-size: 16px;
+  font-weight: 600;
   color: #323233;
-  font-weight: 500;
   line-height: 1.4;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.goods-info p {
-  margin: 4px 0;
+.goods-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goods-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
   font-size: 14px;
-  color: #969799;
-  line-height: 1.4;
 }
 
 .goods-actions {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
+  margin-top: 4px;
 }
 
-/* 弹出层样式 */
+/* 弹出层样式优化 */
 .popup-content {
   padding: 20px 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .popup-actions {
@@ -469,83 +559,258 @@ export default {
   gap: 12px;
 }
 
-/* 品类管理样式 */
+.popup-actions :deep(.van-button) {
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+/* 品类管理样式优化 */
+.popup-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 16px;
+  background: #fff;
+  border-bottom: 1px solid #ebedf0;
+  text-align: center;
+}
+
+.popup-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #323233;
+}
+
+.category-popup {
+  height: calc(100% - 120px);
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+}
+
+.category-list {
+  flex: 1;
+  overflow-y: auto;
+  margin: 16px 0;
+  -webkit-overflow-scrolling: touch;
+}
+
 .category-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #ebedf0;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #f7f8fa;
+  border-radius: 8px;
 }
 
-.category-item:last-child {
-  border-bottom: none;
+.popup-bottom-actions {
+  padding: 16px 0;
+  background: #fff;
 }
 
 .empty {
   text-align: center;
   color: #969799;
-  padding: 32px 0;
-  font-size: 14px;
+  padding: 48px 0;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
-/* 拖拽效果 */
+/* 拖拽效果优化 */
 .sortable-ghost {
   opacity: 0.5;
   background: #f2f3f5;
-  border: 1px dashed #dcdee0;
+  transform: scale(0.98);
+  transition: all 0.15s ease;
 }
 
 .sortable-drag {
   opacity: 0.9;
   background: #fff;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
   transform: scale(1.02);
+  transition: all 0.15s ease;
 }
 
 /* 表单字段样式优化 */
 :deep(.van-field) {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background-color: #f7f8fa;
+  padding: 4px 8px;
+}
+
+:deep(.van-field__label) {
+  font-weight: 500;
+  color: #323233;
 }
 
 :deep(.van-button) {
-  height: 40px;
-  line-height: 38px;
+  height: 44px;
+  line-height: 42px;
+  font-weight: 500;
 }
 
 :deep(.van-button--small) {
-  height: 32px;
-  line-height: 30px;
-  padding: 0 12px;
+  height: 36px;
+  line-height: 34px;
+  padding: 0 16px;
+  font-size: 14px;
 }
 
-/* 适配暗色模式 */
+/* 响应式布局优化 */
+@media screen and (max-width: 768px) {
+  .app {
+    padding: 0;
+  }
+
+  .nav-bar {
+    padding: env(safe-area-inset-top) 12px 0;
+  }
+
+  .sidebar-container {
+    width: 72px;
+  }
+
+  .goods-list {
+    padding: 12px;
+  }
+
+  .goods-list-content {
+    padding: 12px;
+  }
+
+  .goods-content {
+    padding: 10px 12px;
+  }
+
+  .goods-title {
+    font-size: 15px;
+  }
+
+  .goods-detail-item {
+    font-size: 13px;
+  }
+}
+
+/* 超小屏幕适配 */
+@media screen and (max-width: 360px) {
+  .nav-bar {
+    padding: env(safe-area-inset-top) 8px 0;
+    height: 48px;
+  }
+
+  .main-container {
+    margin-top: calc(48px + env(safe-area-inset-top));
+    height: calc(100vh - 48px - env(safe-area-inset-top));
+  }
+
+  .sidebar-container {
+    width: 64px;
+    top: calc(48px + env(safe-area-inset-top));
+    height: calc(100vh - 48px - env(safe-area-inset-top));
+  }
+
+  .goods-list {
+    padding: 8px;
+  }
+
+  .goods-list-content {
+    padding: 8px;
+  }
+
+  .drag-handle {
+    width: 40px;
+  }
+
+  .goods-content {
+    padding: 8px 10px;
+  }
+
+  .goods-title {
+    font-size: 14px;
+  }
+
+  .goods-details {
+    gap: 8px;
+  }
+
+  .goods-detail-item {
+    font-size: 12px;
+  }
+
+  .goods-actions :deep(.van-button) {
+    padding: 0 8px;
+    height: 24px;
+    line-height: 22px;
+    font-size: 12px;
+  }
+}
+
+/* 暗色模式优化 */
 @media (prefers-color-scheme: dark) {
   .app {
     background: #1c1c1e;
   }
 
+  .nav-bar {
+    background: rgba(44, 44, 46, 0.95);
+  }
+
+  .nav-title {
+    color: #fff;
+  }
+
+  .sidebar-container {
+    background: #2c2c2e;
+    border-right: 1px solid #3a3a3c;
+  }
+
+  .goods-list-content {
+    background: #2c2c2e;
+  }
+
   .goods-item,
-  .category-list,
   .goods-list {
     background: #2c2c2e;
     border-color: #3a3a3c;
   }
 
-  .goods-info h4 {
+  .drag-handle {
+    background: #3a3a3c;
+  }
+
+  .goods-title {
     color: #fff;
   }
 
-  .goods-info p {
+  .goods-detail-item {
     color: #8e8e93;
   }
 
-  .category-item {
-    border-color: #3a3a3c;
+  .goods-detail-item .van-icon {
+    color: #666;
+  }
+
+  .category-item span {
+    color: #fff;
   }
 
   .empty {
     color: #8e8e93;
+  }
+
+  :deep(.van-field) {
+    background-color: #2c2c2e;
+  }
+
+  :deep(.van-field__label) {
+    color: #fff;
   }
 
   .sortable-ghost {
@@ -555,27 +820,62 @@ export default {
 
   .sortable-drag {
     background: #2c2c2e;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  .goods-item:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
-  .goods-item:active {
+  .popup-header {
+    background: #2c2c2e;
+    border-bottom-color: #3a3a3c;
+  }
+
+  .popup-title {
+    color: #fff;
+  }
+
+  .category-item {
     background: #3a3a3c;
   }
-}
 
-/* 响应式布局 */
-@media screen and (max-width: 768px) {
-  .app {
-    padding: 12px;
+  .category-popup {
+    background: #2c2c2e;
   }
 
-  .goods-actions {
-    flex-direction: column;
-  }
-
-  .goods-info {
-    margin: 0 12px;
+  .popup-bottom-actions {
+    background: #2c2c2e;
   }
 }
 
+/* 滚动条美化 */
+.goods-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.goods-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.goods-list::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+@media (hover: none) {
+  .goods-item:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .category-item-wrapper:active {
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+
+  .goods-item:active {
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
 </style>

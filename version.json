@@ -1,6 +1,7 @@
 {
-  "changelog": "修复完成",
-  "version": "1.0.3",
-  "url": "http://btc.abocidee.com/updates/dist.zip",
-  "isUpdate": false
+  "changelog": "修复时区,修复欠款",
+  "version": "1.1.8",
+  "url": "http://update.abocidee.com/updates/dist.zip",
+  "forceDownloadApk": true,
+  "apkUrl": "http://update.abocidee.com/updates/app-release.apk"
 }

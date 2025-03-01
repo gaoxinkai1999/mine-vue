@@ -2,6 +2,20 @@ import request from '@/utils/axiosConfig'
 
 const api = {
   /**
+   * @description 获取简易价格规则列表
+   * @url /priceRule/getSimplePriceRules
+   * @method GET
+
+   * @returns {Promise<any>}
+   */
+  getSimplePriceRules() {
+    return request({
+      url: '/priceRule/getSimplePriceRules',
+      method: 'GET'
+    })
+  },
+
+  /**
    * @description 获取价格规则列表
    * @url /priceRule/getPriceRules
    * @method GET

@@ -3,8 +3,9 @@ import {CapacitorUpdater} from '@capgo/capacitor-updater';
 import {showConfirmDialog, showFailToast, showLoadingToast, showSuccessToast} from "vant";
 import 'vant/es/toast/style';
 import 'vant/es/dialog/style';
-import {useMyStore} from "@/stores/defineStore";
-
+import {Filesystem, Directory} from '@capacitor/filesystem';
+import {FileOpener} from '@capacitor-community/file-opener';
+import {APP_VERSION} from '@/config/version.js'
 
 class UpdateManager {
 
@@ -17,7 +18,6 @@ class UpdateManager {
         try {
             // 通知应用准备就绪
             await CapacitorUpdater.notifyAppReady();
-
 
             // 检查更新
             await this.checkForUpdates();
@@ -33,25 +33,30 @@ class UpdateManager {
         this.isChecking = true;
         try {
 
-
-            // 获取内置版本和当前版本
-            const builtinVersion = await CapacitorUpdater.getBuiltinVersion();
-            const currentVersion = await CapacitorUpdater.current();
-
-            console.log('内置版本:', JSON.stringify(builtinVersion, null, 2));
-            console.log('当前版本:', JSON.stringify(currentVersion, null, 2));
+            const currentVersion = APP_VERSION.version
+            console.log('当前版本:', JSON.stringify(currentVersion));
 
             // 获取version.json的信息
             const versionInfo = await this.fetchVersionInfo();
 
             console.log('最新版本信息:', JSON.stringify(versionInfo, null, 2))
-            // 判断是否需要更新
-            const needUpdate =  this.checkForUpdateNeed(currentVersion, versionInfo);
-            if (!needUpdate) {
+
+            // 检查版本号是否最新
+            const isLatestVersion = this.compareVersions(currentVersion, versionInfo.version) >= 0;
+            if (isLatestVersion) {
+                console.log('当前版本已是最新，无需更新');
                 return;
             }
 
-            await this.showUpdateDialog(versionInfo);
+            // 判断更新方式
+            const forceDownloadApk = versionInfo.forceDownloadApk && versionInfo.apkUrl;
+            if (forceDownloadApk) {
+                console.log('需要强制下载APK');
+                await this.downloadAndInstallApk(versionInfo.apkUrl);
+            } else {
+                console.log('进行热更新');
+                await this.downloadAndInstall(versionInfo);
+            }
 
         } catch (error) {
             console.error('检查更新失败:', error);
@@ -65,7 +70,7 @@ class UpdateManager {
     async fetchVersionInfo() {
         try {
             // 示例：使用时间戳  防止缓存版本信息
-            const url = `http://btc.abocidee.com/updates/version.json?timestamp=${Date.now()}`;
+            const url = `http://update.abocidee.com/updates/version.json`;
             const response = await fetch(url);
             return await response.json();
         } catch (error) {
@@ -74,32 +79,6 @@ class UpdateManager {
         }
     }
 
-    /**
-     * 检查是否需要更新应用版本
-     *
-     * 此函数通过比较当前应用版本和可用的更新版本信息，来决定是否需要更新
-     * 它首先确定当前应用版本，然后根据更新信息和版本比较结果来判断是否有更新需求
-     *
-     * @param {Object} currentVersion - 当前应用的版本信息，包含原生版本和捆绑版本
-     * @param {Object} versionInfo - 版本更新信息，包括是否需要更新和新的版本号
-     * @returns {boolean} - 如果需要更新则返回true，否则返回false
-     */
-     checkForUpdateNeed(currentVersion, versionInfo) {
-
-        // 确定当前应用使用的版本号如果是内置版本，就使用原生版本号，否则使用捆绑版本号
-        const currentAppVersion = currentVersion.bundle.version === 'builtin'
-            ? currentVersion.native
-            : currentVersion.bundle.version;
-        const store = useMyStore()
-        store.changelog = versionInfo.changelog;
-        store.version = versionInfo.version;
-
-        // localStorage.setItem('version', currentAppVersion);
-        // localStorage.setItem('changelog', versionInfo.changelog);
-        // 判断是否有更新需求，并且当前版本是否小于新版本号
-        return versionInfo.isUpdate ||
-            this.compareVersions(currentAppVersion, versionInfo.version) < 0;
-    }
 
     // 版本号比较方法
     compareVersions(version1, version2) {
@@ -115,27 +94,7 @@ class UpdateManager {
         return 0;
     }
 
-    // 显示更新对话框
-    async showUpdateDialog(versionInfo) {
-        try {
-            const message = versionInfo.changelog
-                ? `发现新版本 ${versionInfo.version}\n\n更新内容:\n${versionInfo.changelog}`
-                : `发现新版本 ${versionInfo.version}，是否立即更新？`;
 
-            const result = await showConfirmDialog ({
-                title: '版本更新',
-                message,
-                confirmButtonText: '立即更新',
-                cancelButtonText: '稍后再说'
-            });
-
-            if (result === 'confirm') {
-                await this.downloadAndInstall(versionInfo);
-            }
-        } catch (error) {
-            console.log('用户取消更新');
-        }
-    }
 
     // 下载并安装更新
     async downloadAndInstall(versionInfo) {
@@ -150,8 +109,6 @@ class UpdateManager {
             const downloadResult = await CapacitorUpdater.download({
                 version: versionInfo.version,
                 url: versionInfo.url
-            }, {
-                changelog: versionInfo.changelog
             });
 
             console.log('下载结果:', downloadResult);
@@ -170,8 +127,8 @@ class UpdateManager {
                 id: downloadResult.id,
                 version: versionInfo.version
             });
-            showSuccessToast('更新成功，即将重启应用')
 
+            showSuccessToast('更新成功，即将重启应用')
 
             // 延迟重启
             setTimeout(async () => {
@@ -181,33 +138,148 @@ class UpdateManager {
         } catch (error) {
             console.error('更新失败:', error);
             showFailToast('更新失败')
-            // await this.rollbackUpdate();
         }
     }
 
-    // 回滚更新
-    // async rollbackUpdate() {
-    //     try {
-    //         Toast.loading({
-    //             message: '正在回滚...',
-    //             forbidClick: true,
-    //             duration: 0
-    //         });
-    //
-    //         await CapacitorUpdater.reset();
-    //         Toast.success('已回滚到之前版本');
-    //
-    //         // 延迟重启
-    //         setTimeout(async () => {
-    //             await CapacitorUpdater.reload();
-    //         }, 1500);
-    //
-    //     } catch (error) {
-    //         console.error('回滚失败:', error);
-    //         Toast.fail('回滚失败');
-    //     }
-    // }
+    // 下载并安装APK
+    async downloadAndInstallApk(apkUrl) {
+        try {
+            showLoadingToast({
+                message: '准备下载...',
+                forbidClick: true,
+                loadingType: 'spinner',
+            });
 
+            // 生成临时文件名
+            const fileName = `app-update-${Date.now()}.apk`;
+
+            // 使用 fetch 获取文件大小
+            const headResponse = await fetch(apkUrl, {method: 'HEAD'});
+            const totalSize = parseInt(headResponse.headers.get('content-length') || '0');
+
+            // 下载APK文件并显示进度
+            const response = await fetch(apkUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // 创建空文件
+            await Filesystem.writeFile({
+                path: fileName,
+                data: '',
+                directory: Directory.Documents,  // 改用 Documents 目录，确保文件可访问
+                recursive: true
+            });
+
+            const reader = response.body.getReader();
+            let receivedLength = 0;
+
+            while (true) {
+                const {done, value} = await reader.read();
+
+                if (done) {
+                    break;
+                }
+
+                // 将新的数据追加到文件
+                await Filesystem.appendFile({
+                    path: fileName,
+                    data: this.arrayBufferToBase64(value.buffer),
+                    directory: Directory.Documents
+                });
+
+                receivedLength += value.length;
+
+                // 更新下载进度
+                const progress = totalSize ? Math.round((receivedLength / totalSize) * 100) : 0;
+                showLoadingToast({
+                    message: `正在下载新版本...${progress}%`,
+                    forbidClick: true,
+                    loadingType: 'spinner',
+                });
+            }
+
+            console.log('下载完成，文件大小:', receivedLength);
+
+            // 获取文件的完整路径
+            const fileInfo = await Filesystem.getUri({
+                directory: Directory.Documents,
+                path: fileName
+            });
+
+            console.log('文件路径信息:', fileInfo);
+
+            // 直接打开 APK 进行安装
+            await this.openApk(fileInfo.uri); // 新增调用打开 APK 的方法
+
+        } catch (error) {
+            console.error('下载或安装APK失败:', error);
+            console.log('详细错误信息:', error.message);
+            if (error.message.includes('HTTP error')) {
+                showFailToast('下载失败：无法连接到服务器');
+            } else if (error.message.includes('write') || error.message.includes('storage')) {
+                showFailToast('保存文件失败：存储空间不足');
+            } else if (error.message.includes('open') || error.message.includes('activity')) {
+                showFailToast('打开安装程序失败，请检查是否允许安装未知来源应用');
+            } else {
+                showFailToast(`更新失败：${error.message}`);
+            }
+
+            // 打印更详细的错误信息以便调试
+            console.error('完整错误对象:', JSON.stringify(error, null, 2));
+        }
+    }
+
+    // 新增方法：打开 APK 文件进行安装
+    async openApk(filePath) {
+        try {
+            showLoadingToast({
+                message: '正在打开安装程序...',
+                forbidClick: true,
+                loadingType: 'spinner',
+            });
+
+            // 尝试打开APK进行安装
+            await FileOpener.open({
+                filePath: filePath,
+                contentType: 'application/vnd.android.package-archive',
+                openWithDefault: true
+            });
+
+            showSuccessToast('请按照提示安装新版本');
+        } catch (openError) {
+            console.error('打开APK失败，尝试第二种方式:', openError);
+            // 如果第一种方式失败，尝试使用 Capacitor 的 Filesystem 复制文件到下载目录
+            const downloadDir = await Filesystem.getUri({
+                directory: Directory.External,
+                path: `Download/${fileName}`
+            });
+
+            await Filesystem.copy({
+                from: filePath,
+                to: downloadDir.uri
+            });
+
+            await FileOpener.open({
+                filePath: downloadDir.uri,
+                contentType: 'application/vnd.android.package-archive',
+                openWithDefault: true
+            });
+
+            showSuccessToast('请按照提示安装新版本');
+        }
+    }
+
+    // 辅助方法：将 ArrayBuffer 转换为 Base64
+    arrayBufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    }
 
 }
 

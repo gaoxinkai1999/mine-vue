@@ -38,7 +38,7 @@
     <div v-if="UseSearch">
 
       <van-cell v-for="shop in SearchResult" :key="shop.id" :label="shop.location" border center
-                @click="parentMethod(shop.id)">
+                @click="handleClick(shop)">
         <template #title>
           <div style="display: flex; align-items: center;">
             <span style="flex-shrink: 0; min-width:35vw;">{{ shop.name }}</span>

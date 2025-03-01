@@ -1,14 +1,10 @@
 <template>
-  <div class="header">
-    <h1 class="title">门店配送系统</h1>
-    <p class="version">版本 1.0.0</p>
-  </div>
   <div class="statistics-dashboard">
 
     <!-- 数据卡片组 -->
     <div class="stats-groups">
       <!-- 今日数据 -->
-      <div v-if="today" class="stats-card">
+      <div v-if="today" class="stats-card" :class="{ 'expanded': expandedCard === 'today' }" @click="toggleCard('today')">
         <div class="card-header">
           <h3 class="card-title">今日数据</h3>
           <span class="date-tag">{{ formatDate(new Date()) }}</span>
@@ -36,10 +32,37 @@
             </div>
           </div>
         </div>
+        <!-- 详细信息展开部分 -->
+        <div v-show="expandedCard === 'today'" class="details-section">
+          <div class="details-header">
+            <h4>商品销售详情</h4>
+            <div class="total-cost">总成本: ¥{{ formatMoney(today.totalCost) }}</div>
+          </div>
+          <div class="product-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>商品名称</th>
+                  <th>销售数量</th>
+                  <th>销售额</th>
+                  <th>利润</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="product in today.productSalesInfoDTOS" :key="product.productId">
+                  <td>{{ product.productName }}</td>
+                  <td>{{ product.quantity }}</td>
+                  <td>¥{{ formatMoney(product.totalSales) }}</td>
+                  <td>¥{{ formatMoney(product.totalProfit) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- 昨日数据 -->
-      <div v-if="yesterday" class="stats-card">
+      <div v-if="yesterday" class="stats-card" :class="{ 'expanded': expandedCard === 'yesterday' }" @click="toggleCard('yesterday')">
         <div class="card-header">
           <h3 class="card-title">昨日数据</h3>
           <span class="date-tag">{{ formatDate(getYesterday()) }}</span>
@@ -67,10 +90,37 @@
             </div>
           </div>
         </div>
+        <!-- 详细信息展开部分 -->
+        <div v-show="expandedCard === 'yesterday'" class="details-section">
+          <div class="details-header">
+            <h4>商品销售详情</h4>
+            <div class="total-cost">总成本: ¥{{ formatMoney(yesterday.totalCost) }}</div>
+          </div>
+          <div class="product-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>商品名称</th>
+                  <th>销售数量</th>
+                  <th>销售额</th>
+                  <th>利润</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="product in yesterday.productSalesInfoDTOS" :key="product.productId">
+                  <td>{{ product.productName }}</td>
+                  <td>{{ product.quantity }}</td>
+                  <td>¥{{ formatMoney(product.totalSales) }}</td>
+                  <td>¥{{ formatMoney(product.totalProfit) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- 当月数据 -->
-      <div v-if="thisMonth" class="stats-card">
+      <div v-if="thisMonth" class="stats-card" :class="{ 'expanded': expandedCard === 'month' }" @click="toggleCard('month')">
         <div class="card-header">
           <h3 class="card-title">当月数据</h3>
           <span class="date-tag">{{ getCurrentMonth() }}</span>
@@ -98,6 +148,33 @@
             </div>
           </div>
         </div>
+        <!-- 详细信息展开部分 -->
+        <div v-show="expandedCard === 'month'" class="details-section">
+          <div class="details-header">
+            <h4>商品销售详情</h4>
+            <div class="total-cost">总成本: ¥{{ formatMoney(thisMonth.totalCost) }}</div>
+          </div>
+          <div class="product-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>商品名称</th>
+                  <th>销售数量</th>
+                  <th>销售额</th>
+                  <th>利润</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="product in thisMonth.productSalesInfoDTOS" :key="product.productId">
+                  <td>{{ product.productName }}</td>
+                  <td>{{ product.quantity }}</td>
+                  <td>¥{{ formatMoney(product.totalSales) }}</td>
+                  <td>¥{{ formatMoney(product.totalProfit) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -113,19 +190,27 @@ export default {
       today: null,
       yesterday: null,
       thisMonth: null,
+      expandedCard: null, // 控制展开的卡片
     }
   },
   methods: {
     async getToday() {
       const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      // 使用本地时区格式化日期为YYYY-MM-DD
+      const todayStr = today.getFullYear() + '-' +
+          String(today.getMonth() + 1).padStart(2, '0') + '-' +
+          String(today.getDate()).padStart(2, '0');
 
       const yesterday = new Date(today);
       yesterday.setDate(today.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      const yesterdayStr = yesterday.getFullYear() + '-' +
+          String(yesterday.getMonth() + 1).padStart(2, '0') + '-' +
+          String(yesterday.getDate()).padStart(2, '0');
 
       const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const firstDayOfMonthStr = firstDayOfMonth.toISOString().split('T')[0];
+      const firstDayOfMonthStr = firstDayOfMonth.getFullYear() + '-' +
+          String(firstDayOfMonth.getMonth() + 1).padStart(2, '0') + '-' +
+          String(firstDayOfMonth.getDate()).padStart(2, '0');
 
       try {
         const [todayData, yesterdayData, monthData] = await Promise.all([
@@ -172,6 +257,10 @@ export default {
         year: 'numeric',
         month: 'long'
       }).format(new Date());
+    },
+
+    toggleCard(cardType) {
+      this.expandedCard = this.expandedCard === cardType ? null : cardType;
     }
   },
   mounted() {
@@ -205,8 +294,17 @@ export default {
 .statistics-dashboard {
   padding: 16px;
   background-color: #f5f7fa;
-  min-height: 100%;
+  min-height: 100vh;
+  position: relative;
   box-sizing: border-box;
+  overflow-y: auto;
+  padding-bottom: var(--van-tabbar-height);
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .statistics-dashboard {
+    padding-bottom: calc(var(--van-tabbar-height) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .stats-groups {
@@ -215,7 +313,7 @@ export default {
   gap: 16px;
   max-width: 800px;
   margin: 0 auto;
-  padding-bottom: var(--van-tabbar-height);
+  margin-bottom: 20px;
 }
 
 .stats-card {
@@ -226,16 +324,12 @@ export default {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #ebedf0;
   overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.stats-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 100%;
-  background: #1989fa;
+.stats-card.expanded {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .stat-item {
@@ -303,6 +397,58 @@ export default {
   font-weight: 600;
 }
 
+.details-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ebedf0;
+}
+
+.details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.details-header h4 {
+  margin: 0;
+  font-size: 14px;
+  color: #606266;
+}
+
+.total-cost {
+  font-size: 14px;
+  color: #606266;
+}
+
+.product-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.product-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.product-table th,
+.product-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ebedf0;
+}
+
+.product-table th {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+}
+
+.product-table tr:hover td {
+  background-color: #f5f7fa;
+}
+
 @media (max-width: 480px) {
   .statistics-dashboard {
     padding: 12px;
@@ -318,6 +464,15 @@ export default {
 
   .stat-value {
     font-size: 16px;
+  }
+
+  .product-table {
+    font-size: 13px;
+  }
+  
+  .product-table th,
+  .product-table td {
+    padding: 8px;
   }
 }
 </style>

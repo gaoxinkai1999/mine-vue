@@ -17,22 +17,6 @@ const api = {
   },
 
   /**
-   * @description 删除订单
-   * @url /order/delete
-   * @method POST
-   * @param {Object} params Query parameters
-   * @param {number} params.orderId 
-   * @returns {Promise<any>}
-   */
-  deleteOrder(params = {}) {
-    return request({
-      url: '/order/delete',
-      method: 'POST',
-      params
-    })
-  },
-
-  /**
    * @description 新建订单
    * @url /order/create
    * @method POST
@@ -44,6 +28,22 @@ const api = {
       url: '/order/create',
       method: 'POST',
       data
+    })
+  },
+
+  /**
+   * @description 
+   * @url /order/cancel
+   * @method POST
+   * @param {Object} params Query parameters
+   * @param {number} params.orderId 
+   * @returns {Promise<any>}
+   */
+  cancelOrder(params = {}) {
+    return request({
+      url: '/order/cancel',
+      method: 'POST',
+      params
     })
   }
 }

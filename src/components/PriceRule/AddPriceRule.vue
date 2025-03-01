@@ -67,7 +67,7 @@ export default {
       this.$http.post('/priceRule/add', this.PriceRule).then(res => {
         console.log(res)
         this.$router.push({
-          path: '/PriceRule'
+          path: '/Lsit'
         })
       })
     }

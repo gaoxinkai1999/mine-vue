@@ -17,6 +17,21 @@ const api = {
   },
 
   /**
+   * @description 新建店铺
+   * @url /shop/create
+   * @method POST
+   * @param {Object} data Request body
+   * @returns {Promise<any>}
+   */
+  create(data) {
+    return request({
+      url: '/shop/create',
+      method: 'POST',
+      data
+    })
+  },
+
+  /**
    * @description 模糊查询商家
    * @url /shop/search
    * @method GET

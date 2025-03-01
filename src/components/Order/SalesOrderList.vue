@@ -1,6 +1,6 @@
 <template>
   <div class="sales-order-list">
-    <van-list v-model="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
+    <van-list v-model:loading="loading" :finished="finished" finished-text="没有更多了" @load="onLoad">
       <van-cell-group v-for="(item, index) in orders" :key="index" class="order-card">
         <!-- 订单头部 -->
         <van-cell class="order-header">
@@ -41,7 +41,7 @@
               <van-tag v-if="!orderDetail.defaultPrice" type="danger" size="mini">特价</van-tag>
             </div>
             <div class="quantity-price">
-              <span class="quantity">x{{ orderDetail.num }}</span>
+              <span class="quantity">x{{ orderDetail.quantity }}</span>
               <span class="price">¥{{ orderDetail.totalSalesAmount }}</span>
             </div>
           </div>
@@ -73,10 +73,12 @@
 </template>
 
 <script>
-import { Dialog } from 'vant';
+
+import { Clipboard } from '@capacitor/clipboard';
 
 import api from "@/api";
 import {formatReceipt, printOrder} from "@/utils/printService";
+import {showFailToast} from "vant";
 
 export default {
   name: 'SalesOrderList',
@@ -123,25 +125,26 @@ export default {
         console.error('打印失败', error);
       }
 
-      // this.$router.push({
-      //   name: 'print',
-      //   params: { order: this.selectedOrder }
-      // });
     },
-    handleCopyOrder(order) {
-      const receipt = formatReceipt(order, false);
-      navigator.clipboard.writeText(receipt).then(() => {
-        alert('订单小票已复制到剪切板');
-      }).catch(err => {
+    async handleCopyOrder(order) {
+      try {
+        const receipt = formatReceipt(order, false);
+        await Clipboard.write({
+          string: receipt
+        });
+        showSuccessToast('订单小票已复制到剪切板');
+      } catch (err) {
         console.error('复制失败:', err);
-        alert('复制失败，请重试');
-      });
+        showFailToast('复制失败，错误信息:'+err);
+      }
+
+
     },
     handleDeleteOrder(id) {
-      Dialog.confirm({
+      showConfirmDialog ({
         title: '确认删除',
       }).then(() => {
-        api.order.deleteOrder({ orderId: id }).then(() => {
+        api.order.cancelOrder({ orderId: id }).then(() => {
           this.orders = this.orders.filter(item => item.id !== id);
         });
       }).catch(() => {
@@ -153,8 +156,8 @@ export default {
       const data = await api.order.getOrders({
         shopId: this.$route.query.shopId,
         localDate: this.$route.query.localDate,
-        PageNum: this.pageIndex,
-        PageSize: this.pageSize
+        page: this.pageIndex,
+        size: this.pageSize
       });
       this.orders.push(...data);
       this.pageIndex += 1;

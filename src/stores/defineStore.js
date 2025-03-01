@@ -7,7 +7,7 @@ export const useMyStore = defineStore('my', {
     state: () => ({
         version: 'xxx',
         changelog: 'xxx',
-        activeIndex: 0,
+
 
 
     }),
@@ -17,13 +17,8 @@ export const useMyStore = defineStore('my', {
 
     // 方法
     actions: {
-        increment() {
-
-        },
-        async fetchSomeData() {
-            // 异步操作
-        },
 
     },
+    persist: true  // 开启持久化
 
 })
